@@ -105,16 +105,19 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw)
 {
 	//list_add(current->list,); 프로세스끼리는 list인가봄
 	//pagetable -> pte_directory -> pte
-	if(current->pagetable.outer_ptes){
-		
-	}
+	int directoryidx = vpn / NR_PTES_PER_PAGE;
+	int pteidx = vpn % NR_PTES_PER_PAGE;
 
+	if(current->pagetable.outer_ptes[directoryidx]==NULL){
+		current->pagetable.outer_ptes[directoryidx] = malloc(sizeof(struct pte_directory));
+	}
 	struct pte newpte;
 	newpte.rw = rw;
 	newpte.valid = true;
-	newpte.pfn;
+	newpte.pfn = pteidx;
 	newpte.private = 0;
-	return -1;
+	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx] = newpte;
+	return pteidx;
 }
 
 
