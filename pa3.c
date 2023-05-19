@@ -132,6 +132,11 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw)
  */
 void free_page(unsigned int vpn)
 {
+	int directoryidx = vpn / NR_PTES_PER_PAGE;
+	int pteidx = vpn % NR_PTES_PER_PAGE;
+	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw = 0;
+	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].valid = false;
+	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].pfn = 0;
 }
 
 
