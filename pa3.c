@@ -103,6 +103,17 @@ void insert_tlb(unsigned int vpn, unsigned int rw, unsigned int pfn)
  */
 unsigned int alloc_page(unsigned int vpn, unsigned int rw)
 {
+	//list_add(current->list,); 프로세스끼리는 list인가봄
+	//pagetable -> pte_directory -> pte
+	if(current->pagetable.outer_ptes){
+		
+	}
+
+	struct pte newpte;
+	newpte.rw = rw;
+	newpte.valid = true;
+	newpte.pfn;
+	newpte.private = 0;
 	return -1;
 }
 
