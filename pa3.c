@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "types.h"
 #include "list_head.h"
@@ -182,4 +183,28 @@ bool handle_page_fault(unsigned int vpn, unsigned int rw)
  */
 void switch_process(unsigned int pid)
 {
+	struct process* pos;
+	list_for_each_entry(pos, &processes, list){
+		if(pos->pid == pid){
+			list_add(&current->list, &processes);
+			current = pos;
+			return;
+		}
+	}
+	//no process
+	struct process* newprocess;
+	newprocess = malloc(sizeof(struct process));
+	newprocess->pid = pid;
+	for(int i=0;i<NR_PTES_PER_PAGE;i++){
+		if(current->pagetable.outer_ptes[i]==NULL) continue;
+		newprocess->pagetable.outer_ptes[i] = malloc(sizeof(struct pte_directory));
+		memcpy(newprocess->pagetable.outer_ptes[i], current->pagetable.outer_ptes[i], sizeof(struct pte_directory));
+		for(int j=0;j<NR_PTES_PER_PAGE;j++){
+			if(current->pagetable.outer_ptes[i]->ptes[j].valid == true){
+				mapcounts[i*NR_PTES_PER_PAGE+j]++;
+			}
+		}
+	}
+	current = newprocess;
+	return;
 }
