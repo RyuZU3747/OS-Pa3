@@ -236,7 +236,7 @@ void switch_process(unsigned int pid)
 			if(current->pagetable.outer_ptes[i]->ptes[j].valid == true){
 				struct pte newpte;
 				newpte.valid = true;
-				if(current->pagetable.outer_ptes[i]->ptes[j].rw == ACCESS_WRITE){
+				if(current->pagetable.outer_ptes[i]->ptes[j].rw == ACCESS_WRITE | ACCESS_READ){
 					newpte.rw = current->pagetable.outer_ptes[i]->ptes[j].rw = ACCESS_READ;
 					newpte.private = current->pagetable.outer_ptes[i]->ptes[j].private = 1;//1 is sharing
 				}
