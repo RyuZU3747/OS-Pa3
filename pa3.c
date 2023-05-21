@@ -118,6 +118,7 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw)
 	newpte.pfn = pteidx;
 	newpte.private = 0;
 	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx] = newpte;
+	mapcounts[vpn]++;
 	return pteidx;
 }
 
@@ -138,6 +139,7 @@ void free_page(unsigned int vpn)
 	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw = 0;
 	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].valid = false;
 	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].pfn = 0;
+	mapcounts[vpn]--;
 }
 
 
@@ -186,6 +188,7 @@ void switch_process(unsigned int pid)
 	struct process* pos;
 	list_for_each_entry(pos, &processes, list){
 		if(pos->pid == pid){
+			list_del(&pos->list);
 			list_add(&current->list, &processes);
 			current = pos;
 			return;
@@ -198,13 +201,19 @@ void switch_process(unsigned int pid)
 	for(int i=0;i<NR_PTES_PER_PAGE;i++){
 		if(current->pagetable.outer_ptes[i]==NULL) continue;
 		newprocess->pagetable.outer_ptes[i] = malloc(sizeof(struct pte_directory));
-		memcpy(newprocess->pagetable.outer_ptes[i], current->pagetable.outer_ptes[i], sizeof(struct pte_directory));
 		for(int j=0;j<NR_PTES_PER_PAGE;j++){
 			if(current->pagetable.outer_ptes[i]->ptes[j].valid == true){
+				struct pte newpte;
+				newpte.valid = true;
+				newpte.rw = current->pagetable.outer_ptes[i]->ptes[j].rw;
+				newpte.pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn;
+
+				newprocess->pagetable.outer_ptes[i]->ptes[j] = newpte;
 				mapcounts[i*NR_PTES_PER_PAGE+j]++;
 			}
 		}
 	}
+	list_add(&current->list, &processes);
 	current = newprocess;
 	return;
 }
