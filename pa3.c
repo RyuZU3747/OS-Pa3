@@ -104,22 +104,26 @@ void insert_tlb(unsigned int vpn, unsigned int rw, unsigned int pfn)
  */
 unsigned int alloc_page(unsigned int vpn, unsigned int rw)
 {
-	//list_add(current->list,); 프로세스끼리는 list인가봄
 	//pagetable -> pte_directory -> pte
-	int directoryidx = vpn / NR_PTES_PER_PAGE;
-	int pteidx = vpn % NR_PTES_PER_PAGE;
 
-	if(current->pagetable.outer_ptes[directoryidx]==NULL){
-		current->pagetable.outer_ptes[directoryidx] = malloc(sizeof(struct pte_directory));
+	for(int directoryidx = 0; directoryidx < 16; directoryidx++){
+		if(current->pagetable.outer_ptes[directoryidx]==NULL){
+			current->pagetable.outer_ptes[directoryidx] = malloc(sizeof(struct pte_directory));
+		}
+		for(int pteidx = 0; pteidx < 16; pteidx++){
+			if(mapcounts[directoryidx*16+pteidx]==0){
+				struct pte newpte;
+				newpte.rw = rw;
+				newpte.valid = true;
+				newpte.pfn = pteidx;
+				newpte.private = vpn;
+				current->pagetable.outer_ptes[directoryidx]->ptes[pteidx] = newpte;
+				mapcounts[directoryidx*16+pteidx]++;
+				return newpte.pfn;
+			}
+		}
 	}
-	struct pte newpte;
-	newpte.rw = rw;
-	newpte.valid = true;
-	newpte.pfn = pteidx;
-	newpte.private = 0;
-	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx] = newpte;
-	mapcounts[vpn]++;
-	return pteidx;
+
 }
 
 
@@ -134,12 +138,16 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw)
  */
 void free_page(unsigned int vpn)
 {
-	int directoryidx = vpn / NR_PTES_PER_PAGE;
-	int pteidx = vpn % NR_PTES_PER_PAGE;
-	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw = 0;
-	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].valid = false;
-	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].pfn = 0;
-	mapcounts[vpn]--;
+	for(int directoryidx = 0; directoryidx < 16; directoryidx++){
+		for(int pteidx = 0; pteidx < 16; pteidx++){
+			if(current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].private == vpn){
+				current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw = 0;
+				current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].valid = false;
+				current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].pfn = 0;
+				mapcounts[vpn]--;
+			}
+		}
+	}
 }
 
 
@@ -207,7 +215,7 @@ void switch_process(unsigned int pid)
 				newpte.valid = true;
 				newpte.rw = current->pagetable.outer_ptes[i]->ptes[j].rw;
 				newpte.pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn;
-
+				newpte.private = current->pagetable.outer_ptes[i]->ptes[j].private;
 				newprocess->pagetable.outer_ptes[i]->ptes[j] = newpte;
 				mapcounts[i*NR_PTES_PER_PAGE+j]++;
 			}
