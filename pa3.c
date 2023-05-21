@@ -193,11 +193,7 @@ bool handle_page_fault(unsigned int vpn, unsigned int rw)
 	int directoryidx = vpn / NR_PTES_PER_PAGE;
 	int pteidx = vpn % NR_PTES_PER_PAGE;
 
-	if(current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].private == 2){
-		current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw = ACCESS_WRITE | ACCESS_READ;
-		return true;
-	}
-	else if(current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].private == 1){ //new pte?
+	if(current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].private == 1){ //new pte?
 		mapcounts[current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].pfn]--;
 		current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw = 0;
 		current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].valid = false;
@@ -253,8 +249,7 @@ void switch_process(unsigned int pid)
 				newpte.pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn;
 				if(current->pagetable.outer_ptes[i]->ptes[j].rw == (ACCESS_WRITE | ACCESS_READ)){
 					newpte.rw = current->pagetable.outer_ptes[i]->ptes[j].rw = ACCESS_READ;
-					if(mapcounts[newpte.pfn]==1) current->pagetable.outer_ptes[i]->ptes[j].private = 2;//2 is origin
-					else current->pagetable.outer_ptes[i]->ptes[j].private = 1;//1 is sharing
+					current->pagetable.outer_ptes[i]->ptes[j].private = 1;//1 is sharing
 					newpte.private = 1;
 				}
 				else newpte.rw = current->pagetable.outer_ptes[i]->ptes[j].rw;
