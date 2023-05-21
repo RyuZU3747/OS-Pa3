@@ -67,8 +67,8 @@ extern unsigned int mapcounts[];
 bool lookup_tlb(unsigned int vpn, unsigned int rw, unsigned int *pfn)
 {
 	for(int i=0;i<256;i++){
-		if(tlb[i].valid == true && tlb[i].vpn == vpn){
-			*pfn = tlb->pfn;
+		if(tlb[i].valid == true && tlb[i].vpn == vpn && tlb[i].rw & rw){
+			*pfn = tlb[i].pfn;
 			return true;
 		}
 	}
