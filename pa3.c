@@ -153,23 +153,22 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw)
  */
 void free_page(unsigned int vpn)
 {
-	for(int directoryidx = 0; directoryidx < 16; directoryidx++){
-		for(int pteidx = 0; pteidx < 16; pteidx++){
-			if(current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].private == vpn){
-				current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw = 0;
-				current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].valid = false;
-				current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].pfn = 0;
-				mapcounts[vpn]--;
-				for(int i=0;i<256;i++){
-					if(tlb[i].vpn==vpn){
-						tlb[i].valid = false;
-						break;
-					}
-				}
-				return;
-			}
+	int directoryidx = vpn / NR_PTES_PER_PAGE;
+	int pteidx = vpn % NR_PTES_PER_PAGE;
+	
+	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw = 0;
+	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].valid = false;
+	mapcounts[current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].pfn]--;
+	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].pfn = 0;
+	for(int i=0;i<256;i++){
+		if(tlb[i].vpn==vpn){
+			tlb[i].valid = false;
+			break;
 		}
 	}
+	return;
+				
+			
 }
 
 
@@ -194,8 +193,12 @@ bool handle_page_fault(unsigned int vpn, unsigned int rw)
 	int directoryidx = vpn / NR_PTES_PER_PAGE;
 	int pteidx = vpn % NR_PTES_PER_PAGE;
 
-	if(current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].private == 1){
-		current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw |= ACCESS_WRITE;
+	if(current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].private == 1){ //new pte?
+		current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw = 0;
+		current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].valid = false;
+		current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].pfn = 0;
+		mapcounts[current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].pfn]--;
+		alloc_page(vpn, ACCESS_WRITE | ACCESS_READ);
 		return true;
 	}
 	return false;
