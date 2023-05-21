@@ -64,9 +64,10 @@ extern unsigned int mapcounts[];
  *   Return true if the translation is cached in the TLB.
  *   Return false otherwise
  */
+static int tlbidx;
 bool lookup_tlb(unsigned int vpn, unsigned int rw, unsigned int *pfn)
 {
-	for(int i=0;i<256;i++){
+	for(int i=0;i<tlbidx;i++){
 		if(tlb[i].valid == true && tlb[i].vpn == vpn && tlb[i].rw & rw){
 			*pfn = tlb[i].pfn;
 			return true;
@@ -89,7 +90,6 @@ bool lookup_tlb(unsigned int vpn, unsigned int rw, unsigned int *pfn)
  */
 void insert_tlb(unsigned int vpn, unsigned int rw, unsigned int pfn)
 {
-	static int tlbidx;
 	for(int i=0;i<tlbidx;i++){
 		if(tlb[i].vpn == vpn) return;
 	}
@@ -228,6 +228,11 @@ bool handle_page_fault(unsigned int vpn, unsigned int rw)
  */
 void switch_process(unsigned int pid)
 {
+	for(int i=0;i<tlbidx;i++){
+		tlb[i].valid = false;
+	}
+	tlbidx = 0;
+
 	struct process* pos;
 	list_for_each_entry(pos, &processes, list){
 		if(pos->pid == pid){
