@@ -191,7 +191,12 @@ void free_page(unsigned int vpn)
  */
 bool handle_page_fault(unsigned int vpn, unsigned int rw)
 {
-
+	int directoryidx = vpn / NR_PTES_PER_PAGE;
+	int pteidx = vpn % NR_PTES_PER_PAGE;
+	if(current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].private == 1){
+		current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw = ACCESS_WRITE | ACCESS_READ;
+		return true;
+	}
 	return false;
 }
 
