@@ -67,8 +67,8 @@ extern unsigned int mapcounts[];
 bool lookup_tlb(unsigned int vpn, unsigned int rw, unsigned int *pfn)
 {
 	for(int i=0;i<256;i++){
-		if(tlb[i].valid == true && tlb[i].vpn == vpn && tlb[i].rw == rw){
-			pfn = &tlb->pfn;
+		if(tlb[i].valid == true && tlb[i].vpn == vpn){
+			*pfn = tlb->pfn;
 			return true;
 		}
 	}
@@ -90,6 +90,9 @@ bool lookup_tlb(unsigned int vpn, unsigned int rw, unsigned int *pfn)
 void insert_tlb(unsigned int vpn, unsigned int rw, unsigned int pfn)
 {
 	static int tlbidx;
+	for(int i=0;i<tlbidx;i++){
+		if(tlb[i].vpn == vpn) return;
+	}
 	struct tlb_entry newtlb;
 	newtlb.vpn = vpn;
 	newtlb.rw = rw;
