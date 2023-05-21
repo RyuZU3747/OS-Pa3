@@ -119,24 +119,26 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw)
 {
 	//pagetable -> pte_directory -> pte
 	//????ptbr??
-	for(int directoryidx = 0; directoryidx < 16; directoryidx++){
-		if(current->pagetable.outer_ptes[directoryidx]==NULL){
-			current->pagetable.outer_ptes[directoryidx] = malloc(sizeof(struct pte_directory));
-		}
-		for(int pteidx = 0; pteidx < 16; pteidx++){
-			if(mapcounts[directoryidx*16+pteidx]==0){
-				struct pte newpte;
-				newpte.rw = rw;
-				newpte.valid = true;
-				newpte.pfn = directoryidx*16+pteidx;
-				newpte.private = 0;
-				current->pagetable.outer_ptes[directoryidx]->ptes[pteidx] = newpte;
-				mapcounts[directoryidx*16+pteidx]++;
-				return newpte.pfn;
-			}
+
+	int directoryidx = vpn / NR_PTES_PER_PAGE;
+	int pteidx = vpn % NR_PTES_PER_PAGE;
+	
+	if(current->pagetable.outer_ptes[directoryidx]==NULL){
+		current->pagetable.outer_ptes[directoryidx] = malloc(sizeof(struct pte_directory));
+	}
+	struct pte newpte;
+	for(int i=0;i<128;i++){
+		if(mapcounts[i]==0){
+			mapcounts[i]++;
+			newpte.pfn = i;
+			break;
 		}
 	}
-
+	newpte.rw = rw;
+	newpte.valid = true;
+	newpte.private = 0;
+	current->pagetable.outer_ptes[directoryidx]->ptes[pteidx] = newpte;
+	return newpte.pfn;
 }
 
 
