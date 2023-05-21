@@ -66,6 +66,12 @@ extern unsigned int mapcounts[];
  */
 bool lookup_tlb(unsigned int vpn, unsigned int rw, unsigned int *pfn)
 {
+	for(int i=0;tlb[i].valid!=false;i++){
+		if(tlb[i].vpn == vpn && tlb[i].rw == rw){
+			pfn = tlb->pfn;
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -83,6 +89,13 @@ bool lookup_tlb(unsigned int vpn, unsigned int rw, unsigned int *pfn)
  */
 void insert_tlb(unsigned int vpn, unsigned int rw, unsigned int pfn)
 {
+	static int tlbidx;
+	struct tlb_entry newtlb;
+	newtlb.vpn = vpn;
+	newtlb.rw = rw;
+	newtlb.pfn = pfn;
+	newtlb.valid = true;
+	tlb[tlbidx++] = newtlb;
 }
 
 
@@ -169,6 +182,7 @@ void free_page(unsigned int vpn)
  */
 bool handle_page_fault(unsigned int vpn, unsigned int rw)
 {
+
 	return false;
 }
 
