@@ -66,9 +66,9 @@ extern unsigned int mapcounts[];
  */
 bool lookup_tlb(unsigned int vpn, unsigned int rw, unsigned int *pfn)
 {
-	for(int i=0;tlb[i].valid!=false;i++){
-		if(tlb[i].vpn == vpn && tlb[i].rw == rw){
-			pfn = tlb->pfn;
+	for(int i=0;i<256;i++){
+		if(tlb[i].valid == true && tlb[i].vpn == vpn && tlb[i].rw == rw){
+			pfn = &tlb->pfn;
 			return true;
 		}
 	}
@@ -118,7 +118,7 @@ void insert_tlb(unsigned int vpn, unsigned int rw, unsigned int pfn)
 unsigned int alloc_page(unsigned int vpn, unsigned int rw)
 {
 	//pagetable -> pte_directory -> pte
-
+	//????ptbr??
 	for(int directoryidx = 0; directoryidx < 16; directoryidx++){
 		if(current->pagetable.outer_ptes[directoryidx]==NULL){
 			current->pagetable.outer_ptes[directoryidx] = malloc(sizeof(struct pte_directory));
@@ -128,8 +128,8 @@ unsigned int alloc_page(unsigned int vpn, unsigned int rw)
 				struct pte newpte;
 				newpte.rw = rw;
 				newpte.valid = true;
-				newpte.pfn = pteidx;
-				newpte.private = vpn;
+				newpte.pfn = directoryidx*16+pteidx;
+				newpte.private = 0;
 				current->pagetable.outer_ptes[directoryidx]->ptes[pteidx] = newpte;
 				mapcounts[directoryidx*16+pteidx]++;
 				return newpte.pfn;
@@ -158,6 +158,13 @@ void free_page(unsigned int vpn)
 				current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].valid = false;
 				current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].pfn = 0;
 				mapcounts[vpn]--;
+				for(int i=0;i<256;i++){
+					if(tlb[i].vpn==vpn){
+						tlb[i].valid = false;
+						break;
+					}
+				}
+				return;
 			}
 		}
 	}
@@ -227,9 +234,12 @@ void switch_process(unsigned int pid)
 			if(current->pagetable.outer_ptes[i]->ptes[j].valid == true){
 				struct pte newpte;
 				newpte.valid = true;
-				newpte.rw = current->pagetable.outer_ptes[i]->ptes[j].rw;
+				if(current->pagetable.outer_ptes[i]->ptes[j].rw == ACCESS_WRITE){
+					newpte.rw = current->pagetable.outer_ptes[i]->ptes[j].rw = ACCESS_READ;
+					newpte.private = current->pagetable.outer_ptes[i]->ptes[j].private = 1;//1 is sharing
+				}
+				else newpte.rw = current->pagetable.outer_ptes[i]->ptes[j].rw;
 				newpte.pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn;
-				newpte.private = current->pagetable.outer_ptes[i]->ptes[j].private;
 				newprocess->pagetable.outer_ptes[i]->ptes[j] = newpte;
 				mapcounts[i*NR_PTES_PER_PAGE+j]++;
 			}
