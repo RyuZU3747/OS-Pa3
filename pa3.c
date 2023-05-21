@@ -193,8 +193,9 @@ bool handle_page_fault(unsigned int vpn, unsigned int rw)
 {
 	int directoryidx = vpn / NR_PTES_PER_PAGE;
 	int pteidx = vpn % NR_PTES_PER_PAGE;
+
 	if(current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].private == 1){
-		current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw = ACCESS_WRITE | ACCESS_READ;
+		current->pagetable.outer_ptes[directoryidx]->ptes[pteidx].rw |= ACCESS_WRITE;
 		return true;
 	}
 	return false;
@@ -227,6 +228,7 @@ void switch_process(unsigned int pid)
 			list_del(&pos->list);
 			list_add(&current->list, &processes);
 			current = pos;
+			ptbr = &pos->pagetable;
 			return;
 		}
 	}
@@ -241,18 +243,19 @@ void switch_process(unsigned int pid)
 			if(current->pagetable.outer_ptes[i]->ptes[j].valid == true){
 				struct pte newpte;
 				newpte.valid = true;
-				if(current->pagetable.outer_ptes[i]->ptes[j].rw == ACCESS_WRITE | ACCESS_READ){
+				if(current->pagetable.outer_ptes[i]->ptes[j].rw == (ACCESS_WRITE | ACCESS_READ)){
 					newpte.rw = current->pagetable.outer_ptes[i]->ptes[j].rw = ACCESS_READ;
 					newpte.private = current->pagetable.outer_ptes[i]->ptes[j].private = 1;//1 is sharing
 				}
 				else newpte.rw = current->pagetable.outer_ptes[i]->ptes[j].rw;
 				newpte.pfn = current->pagetable.outer_ptes[i]->ptes[j].pfn;
 				newprocess->pagetable.outer_ptes[i]->ptes[j] = newpte;
-				mapcounts[i*NR_PTES_PER_PAGE+j]++;
+				mapcounts[newpte.pfn]++;
 			}
 		}
 	}
 	list_add(&current->list, &processes);
+	ptbr = &newprocess->pagetable;
 	current = newprocess;
 	return;
 }
